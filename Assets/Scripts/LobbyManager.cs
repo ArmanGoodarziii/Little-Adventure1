@@ -1,16 +1,17 @@
 using UnityEngine;
+using Photon.Pun;
+using Photon.Realtime;
+using UnityEngine.UI;
 
-public class LobbyManager : MonoBehaviour
+public class LobbyManager : MonoBehaviourPunCallbacks
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    [SerializeField] private InputField inputField;
+    public void CreateRoom()
     {
-        
+        PhotonNetwork.CreateRoom(inputField.text, new RoomOptions(){MaxPlayers = 4 , IsVisible = true, IsOpen = true}, TypedLobby.Default);
     }
-
-    // Update is called once per frame
-    void Update()
+    public override void OnJoinedRoom()
     {
-        
+        PhotonNetwork.LoadLevel("Level");
     }
 }
