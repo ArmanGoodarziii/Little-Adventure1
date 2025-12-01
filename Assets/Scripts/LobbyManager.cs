@@ -10,6 +10,12 @@ public class LobbyManager : MonoBehaviourPunCallbacks
     {
         PhotonNetwork.CreateRoom(inputField.text, new RoomOptions(){MaxPlayers = 4 , IsVisible = true, IsOpen = true}, TypedLobby.Default);
     }
+
+    public void JoinRoomInList(string roomName)
+    {
+        PhotonNetwork.JoinRoom(roomName);
+    }
+
     public override void OnJoinedRoom()
     {
         PhotonNetwork.LoadLevel("Level");
