@@ -2,11 +2,11 @@ using UnityEngine;
 using Photon.Pun;
 using UnityEngine.InputSystem;
 using System.Collections;
-using Unity.Mathematics;
 
 public class Player : MonoBehaviourPun
 {
     public InputSystem_Actions actions;
+    private PhotonView pv;
     private Rigidbody2D rb;
     private Animator animator;
     private float xScale; 
@@ -21,6 +21,10 @@ public class Player : MonoBehaviourPun
     [SerializeField] private float wallCheckDistance;
     [SerializeField] private LayerMask layerGround;
 
+    public GameObject cameraObject;
+    public GameObject canvasObject;
+    public float yPos;
+
     private float faceDir = 1;
     private bool faceRight = true;
     private bool isGrounded;
@@ -30,22 +34,34 @@ public class Player : MonoBehaviourPun
 
     void Awake()
     {
-        actions = new InputSystem_Actions();
+        pv = GetComponent<PhotonView>();
+        if (pv.IsMine)
+        {
+            cameraObject.SetActive(true);
+            actions = new InputSystem_Actions();
+        }
+            
     }
     void OnEnable()
     {
-        actions.Player.Enable();
-        actions.Player.Move.performed += Movement;
-        actions.Player.Jump.performed += Jumping;
+        if (pv.IsMine)
+        {
+            actions.Player.Enable();
+            actions.Player.Move.performed += Movement;
+            actions.Player.Jump.performed += Jumping;
 
-        actions.Player.Move.canceled += Movement;
-        actions.Player.Jump.canceled += Jumping;
+            actions.Player.Move.canceled += Movement;
+            actions.Player.Jump.canceled += Jumping;
+        }
     }
     void OnDisable()
     {
-        actions.Player.Disable();
-        actions.Player.Move.performed -= Movement;
-        actions.Player.Jump.performed -= Jumping;
+        if (pv.IsMine)
+        {
+            actions.Player.Disable();
+            actions.Player.Move.performed -= Movement;
+            actions.Player.Jump.performed -= Jumping;
+        }
     }
 
     void Start()
@@ -57,13 +73,14 @@ public class Player : MonoBehaviourPun
 
     void Update()
     {
-        if (!GetComponent<PhotonView>().IsMine || GetComponent<PhotonView>() == null) return;
-        
-        isGrounded = Physics2D.Raycast(transform.position, Vector2.down, groundCheckDistance, layerGround);
-        isWall = Physics2D.Raycast(transform.position, Vector2.right * faceDir , wallCheckDistance, layerGround);
-        
-        HandleFlip();
-        HandleAnimations();
+        if (pv.IsMine)
+        {
+            HandleCollision();
+            HandleFlip();
+            HandleAnimations();
+
+            cameraObject.transform.position = Vector3.Lerp(cameraObject.transform.position, new Vector3(transform.position.x, transform.position.y, cameraObject.transform.position.z), Time.deltaTime);
+        }
     }
     void FixedUpdate()
     {
@@ -83,14 +100,24 @@ public class Player : MonoBehaviourPun
         
         rb.linearVelocity = new Vector2(move * speed , rb.linearVelocity.y);
     }
+    void LateUpdate()
+    {
+        if(!pv.IsMine) return;
+
+        canvasObject.transform.position = new Vector3(transform.position.x, transform.position.y + yPos, transform.position.z);
+    }
 
     private void Movement(InputAction.CallbackContext ctx)
     {
+        if(!pv.IsMine) return;
+
         Vector2 vector2 = ctx.ReadValue<Vector2>();
         move = vector2.x;
     }
     private void Jumping(InputAction.CallbackContext ctx)
     {
+        if(!pv.IsMine) return;
+
         if (ctx.performed)
         {
             if (isGrounded)
@@ -149,7 +176,11 @@ public class Player : MonoBehaviourPun
         animator.SetBool("isWall", isWall);
     }
 
-     
+    private void HandleCollision()
+    {
+        isGrounded = Physics2D.Raycast(transform.position, Vector2.down, groundCheckDistance, layerGround);
+        isWall = Physics2D.Raycast(transform.position, Vector2.right * faceDir , wallCheckDistance, layerGround);
+    }
 
     private void OnDrawGizmos()
     {
