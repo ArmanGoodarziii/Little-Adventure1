@@ -102,8 +102,6 @@ public class Player : MonoBehaviourPun
     }
     void LateUpdate()
     {
-        if(!pv.IsMine) return;
-
         canvasObject.transform.position = new Vector3(transform.position.x, transform.position.y + yPos, transform.position.z);
     }
 
