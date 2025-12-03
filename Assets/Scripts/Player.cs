@@ -2,6 +2,7 @@ using UnityEngine;
 using Photon.Pun;
 using UnityEngine.InputSystem;
 using System.Collections;
+using UnityEngine.InputSystem.HID;
 
 public class Player : MonoBehaviourPun
 {
@@ -9,7 +10,9 @@ public class Player : MonoBehaviourPun
     private PhotonView pv;
     private Rigidbody2D rb;
     private Animator animator;
-    private float xScale; 
+    private float xScale;
+    [Header("Health")]
+    private float health; 
     [Header("Movement")]
     private float move;
     [SerializeField] private float speed;
@@ -30,6 +33,8 @@ public class Player : MonoBehaviourPun
     private bool isGrounded;
     private bool isWall;
     private bool isWallJumping;
+    private bool isHit;
+    private bool dontHit;
     
 
     void Awake()
@@ -84,7 +89,7 @@ public class Player : MonoBehaviourPun
     }
     void FixedUpdate()
     {
-        if(!GetComponent<PhotonView>().IsMine) return;
+        if(!pv.IsMine) return;
 
         if (isWall)
         {
@@ -95,8 +100,9 @@ public class Player : MonoBehaviourPun
         {
             rb.linearDamping = 0;
         }
-            
+        
         if(isWallJumping) return;
+        if(isHit) return;
         
         rb.linearVelocity = new Vector2(move * speed , rb.linearVelocity.y);
     }
@@ -139,6 +145,8 @@ public class Player : MonoBehaviourPun
                     rb.linearVelocity = new Vector2(wallJump, jumpForce);
                 }
                 StopAllCoroutines();
+                GetComponent<SpriteRenderer>().enabled = true;
+                dontHit = false;
                 StartCoroutine(WallJumping());
             }
         }
@@ -148,6 +156,56 @@ public class Player : MonoBehaviourPun
         isWallJumping = true;
         yield return new WaitForSeconds(0.7f);
         isWallJumping = false;
+    }
+
+    public void Hit()
+    {
+        if(isHit) return;
+        if(dontHit) return;
+        
+        health -= 1;
+        animator.SetTrigger("isHit");
+
+        isWallJumping = false;
+
+        if (faceRight)
+        {
+            rb.linearVelocity = new Vector2(-4 , rb.linearVelocity.y);
+        }
+        else if (!faceRight)
+        {
+            rb.linearVelocity = new Vector2(4 , rb.linearVelocity.y);
+        }
+        StopAllCoroutines();
+        StartCoroutine(Hitting());
+    }
+    private IEnumerator Hitting()
+    {
+        isHit = true;
+        yield return new WaitForSeconds(0.7f);
+        isHit = false;
+        StartCoroutine(HittingAnimation());
+    }
+    private IEnumerator HittingAnimation()
+    {
+        dontHit = true;
+        GetComponent<SpriteRenderer>().enabled = false;
+        yield return new WaitForSeconds(0.1f);
+        GetComponent<SpriteRenderer>().enabled = true;
+        yield return new WaitForSeconds(0.1f);
+        GetComponent<SpriteRenderer>().enabled = false;
+        yield return new WaitForSeconds(0.1f);
+        GetComponent<SpriteRenderer>().enabled = true;
+        yield return new WaitForSeconds(0.1f);
+        GetComponent<SpriteRenderer>().enabled = false;
+        yield return new WaitForSeconds(0.1f);
+        GetComponent<SpriteRenderer>().enabled = true;
+        yield return new WaitForSeconds(0.1f);
+        GetComponent<SpriteRenderer>().enabled = false;
+        yield return new WaitForSeconds(0.1f);
+        GetComponent<SpriteRenderer>().enabled = true;
+        yield return new WaitForSeconds(0.1f);
+        dontHit = false;
     }
     
     private void HandleFlip()
